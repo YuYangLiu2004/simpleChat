@@ -1,4 +1,4 @@
-package edu.seg2105.client.ui;
+package edu.seg2105.server.ui;
 // This file contains material supporting section 3.7 of the textbook:
 // "Object Oriented Software Engineering" and is issued under the open-source
 // license found at www.lloseng.com 
@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 import edu.seg2105.client.backend.ChatClient;
 import edu.seg2105.client.common.*;
+import edu.seg2105.edu.server.backend.EchoServer;
 
 /**
  * This class constructs the UI for a chat client.  It implements the
@@ -18,7 +19,7 @@ import edu.seg2105.client.common.*;
  * @author Dr Timothy C. Lethbridge  
  * @author Dr Robert Lagani&egrave;re
  */
-public class ClientConsole implements ChatIF 
+public class ServerConsole implements ChatIF 
 {
   //Class variables *************************************************
   
@@ -32,7 +33,7 @@ public class ClientConsole implements ChatIF
   /**
    * The instance of the client that created this ConsoleChat.
    */
-  ChatClient client;
+  EchoServer server;
   
   
   
@@ -50,20 +51,9 @@ public class ClientConsole implements ChatIF
    * @param host The host to connect to.
    * @param port The port to connect on.
    */
-  public ClientConsole(String loginId, String host, int port) 
+  public ServerConsole(int port) 
   {
-    try 
-    {
-      client= new ChatClient(loginId, host, port, this);
-      client.sendToServer("#login " + loginId);
-      
-    } 
-    catch(IOException exception) 
-    {
-      System.out.println("Error: Can't setup connection!"
-                + " Terminating client.");
-      System.exit(1);
-    }
+    server = new EchoServer(port);
     
     // Create scanner object to read from console
     fromConsole = new Scanner(System.in); 
@@ -86,7 +76,7 @@ public class ClientConsole implements ChatIF
       while (true) 
       {
         message = fromConsole.nextLine();
-        client.handleMessageFromClientUI(message);
+        server.handleMessageFromServerUI(message);
       }
     } 
     catch (Exception ex) 
@@ -104,7 +94,7 @@ public class ClientConsole implements ChatIF
    */
   public void display(String message) 
   {
-    System.out.println(message); 
+    System.out.println("> " + message);
   }
 
   
@@ -113,48 +103,22 @@ public class ClientConsole implements ChatIF
   /**
    * This method is responsible for the creation of the Client UI.
    *
-   * @param args[0] the loginId
-   * @param args[1] the host
-   * @param args[2] the port
+   * @param args[0] The host to connect to.
    */
   public static void main(String[] args) 
   {
-    String host = "";
+    int port = 0;
     
     try
     {
-      host = args[1];
-    }
-    catch(ArrayIndexOutOfBoundsException e)
-    {
-      host = "localhost";
-    }
-    
-    int port = 0; 
-    
-    try
-    {
-      port = Integer.parseInt(args[2]); //Get port from command line
+      port = Integer.parseInt(args[0]); //Get port from command line
     }
     catch(Throwable t)
     {
       port = DEFAULT_PORT; //Set port to 5555
     }
     
-    
-    String loginId = "";
-    
-    try
-    {
-      loginId = args[0]; //Get port from command line
-    }
-    catch(Throwable t)
-    {
-      System.out.println("You need a login Id");
-      System.exit(0); //Set port to 5555
-    }
-    
-    ClientConsole chat= new ClientConsole(loginId, host, port);
+    ServerConsole chat= new ServerConsole(port);
     chat.accept();  //Wait for console data
   }
 }

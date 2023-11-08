@@ -4,6 +4,8 @@ package edu.seg2105.edu.server.backend;
 // license found at www.lloseng.com 
 
 
+import java.io.IOException;
+
 import ocsf.server.*;
 
 /**
@@ -34,8 +36,12 @@ public class EchoServer extends AbstractServer
   public EchoServer(int port) 
   {
     super(port);
+    try {
+		listen();
+	} catch (IOException e) {
+		System.out.println("Couldn't listen to client");
+	}
   }
-
   
   //Instance methods ************************************************
   
@@ -48,9 +54,28 @@ public class EchoServer extends AbstractServer
   public void handleMessageFromClient
     (Object msg, ConnectionToClient client)
   {
-    System.out.println("Message received: " + msg + " from " + client);
-    this.sendToAllClients(msg);
-  }
+	  System.out.println("Message received: " + msg + " from " + client.getInfo("login"));
+	    String message = (String) msg;
+	    if (message.startsWith("#login")) {
+	        if (client.getInfo("login") == null) {
+	        String[] temp = message.split(" ");
+	          String login = temp[1];
+	        client.setInfo("login", login);
+	        System.out.println(client.getInfo("login") + " has logged in");
+	        } else {
+	            try {
+	                System.out.println("Login is already set");
+	                client.sendToClient(("Your login is in the server already"));
+	                client.close();
+	            } catch (IOException e) {
+	                System.out.println("Couldn't send message to client");
+	            }
+	        }
+	    } else {
+	        this.sendToAllClients(client.getInfo("login") + "> " + msg);
+	    }
+}
+  
     
   /**
    * This method overrides the one in the superclass.  Called
@@ -70,6 +95,34 @@ public class EchoServer extends AbstractServer
   {
     System.out.println
       ("Server has stopped listening for connections.");
+  }
+  
+  /**
+   * Hook method called each time a new client connection is
+   * accepted. The default implementation does nothing.
+   * @param client the connection connected to the client.
+   */
+  @Override
+  protected void clientConnected(ConnectionToClient client) { 
+	  //Sending a nice message when a client has connected
+	  System.out.println("Yippie, client connected: " + client.toString());
+  }
+
+  
+  /**
+   * Hook method called each time an exception is thrown in a
+   * ConnectionToClient thread.
+   * The method may be overridden by subclasses but should remains
+   * synchronized.
+   *
+   * @param client the client that raised the exception.
+   * @param Throwable the exception thrown.
+   */
+  @Override
+  synchronized protected void clientDisconnected(
+    ConnectionToClient client) {
+	  //Sending a nice message when a client has disconnected 
+	  System.out.println("Nooooo, client disconnected: " + client.toString());
   }
   
   
@@ -106,5 +159,57 @@ public class EchoServer extends AbstractServer
       System.out.println("ERROR - Could not listen for clients!");
     }
   }
+
+
+  public void handleMessageFromServerUI(String message) {
+	if (message.equals("#quit")) {
+		try {
+			close();
+			System.out.println("Server is quit");
+			System.exit(0);
+		}catch (IOException e) {
+			System.out.println("Server cannot be closed");
+		}
+	} 
+	else if (message.equals("#stop")){
+		stopListening();
+		System.out.println("Server has stopped listening");
+	} 
+	else if (message.equals("#close")){
+		try {
+			close();
+			System.out.println("Server is closed");
+		}catch (IOException e) {
+			System.out.println("Server cannot be closed");
+		}
+	} 
+	else if (message.equals("#setport")){
+		if (!isListening() && getNumberOfClients() < 1) {
+			String [] temp = message.split(" ");
+			int clientPort = Integer.parseInt(temp[1]);
+			setPort(clientPort);
+			System.out.println("Port set to " + clientPort);
+		}else
+			System.out.println("Server must be closed");
+	} 
+	else if (message.equals("#start")){
+		if (!isListening()) {
+			try {
+				listen();
+			} catch (IOException e) {
+				System.out.println("Cannot listen");
+			} 
+		}else {
+			System.out.println("Server is already started");
+		}
+	} 
+	else if (message.equals("#getport")){
+			System.out.println("The port in the server is " + getPort());
+	}else {
+		System.out.println("SERVER MSG> " + message);
+	    this.sendToAllClients("SERVER MSG> " + message);
+	}
+  }
 }
+
 //End of EchoServer class
